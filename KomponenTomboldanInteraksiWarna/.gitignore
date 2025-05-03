@@ -1,10 +1,7 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-**/node_modules/
-**/.expo/
-**/build/
-**/dist/
-Materi/
+
 # dependencies
+node_modules/
 
 # Expo
 .expo/
@@ -38,10 +35,3 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
-
-**/node_modules/
-**/.expo/
-**/build/
-**/dist/
-Materi/
-Pertemuan-4.zip
