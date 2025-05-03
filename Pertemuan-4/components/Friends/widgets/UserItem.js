@@ -2,12 +2,14 @@ import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const UserItem = ({ item }) => {
+  if (item.gender === "M") {
+    icon = <Image source={require("../../../assets/icons/icon-boy.png")} style={styles.story_ava}/>
+  } else {
+    icon = <Image source={require("../../../assets/icons/icon-girl.png")} style={styles.story_ava}/>
+  }
   return (
     <View style={styles.search_container}>
-      <Image
-        source={require("../../../assets/icons/icon-boy.png")}
-        style={styles.story_ava}
-      />
+      {icon}
       <View style={styles.info_container}>
         <View style={{ flex: 1 }}>
           <Text style={{ ...styles.story_name, fontWeight: "bold" }}>
