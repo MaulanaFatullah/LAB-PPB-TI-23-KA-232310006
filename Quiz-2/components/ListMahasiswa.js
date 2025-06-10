@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, FlatList } from 'react-native';
 
 const ListMahasiswa = () => {
   const [mahasiswa, setMahasiswa] = useState([
-    { id: '1', nama: 'Andi Saputra', npm: '210001', gender: 'L' },
-    { id: '2', nama: 'Sari Melati', npm: '210002', gender: 'P' },
-    { id: '3', nama: 'Budi Santoso', npm: '210003', gender: 'L' },
-    { id: '4', nama: 'Dewi Lestari', npm: '210004', gender: 'P' },
-    { id: '5', nama: 'Rizky Pratama', npm: '210005', gender: 'L' },
+    { id: '1', nama: 'Adi Saputra', npm: '23230001', gender: 'L' },
+    { id: '2', nama: 'Azzahra K.Z.S', npm: '23230002', gender: 'P' },
+    { id: '3', nama: 'Luthfi Mayoga', npm: '23230003', gender: 'L' },
+    { id: '4', nama: 'Helena Jemima W.', npm: '23230004', gender: 'p' },
+    { id: '5', nama: 'Steven Gyasi', npm: '23230005', gender: 'L' },
+    { id: '6', nama: 'Maulana Fatullah', npm: '23230006', gender: 'L' },
   ]);
 
   const renderItem = ({ item }) => {
