@@ -1,54 +1,230 @@
-import React, { useContext, useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import { CartContext } from './../../App';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, Alert, Button, TouchableOpacity } from 'react-native';
 
-export default function CartScreen({ navigation }) {
-  const { cartItems, clearCart } = useContext(CartContext);
+const CartScreen = ({ route }) => {
+  const [cart, setCart] = useState(() => {
+    const initialCart = route.params.cart || [];
+    return initialCart.map(item => ({ ...item, quantity: item.quantity || 1 }));
+  });
+
+  const { products } = route.params;
+  const [orders, setOrders] = useState({});
+  const [completedOrders, setCompletedOrders] = useState([]);
 
   useEffect(() => {
-    Notifications.requestPermissionsAsync();
-  }, []);
+    completedOrders.forEach(orderId => {
+      const product = products.find(p => p.id === orderId);
+      if (product) {
+        Alert.alert(
+          'Pesanan Siap!',
+          `${product.name} sudah siap diambil di kantin`
+        );
+      }
+    });
+  }, [completedOrders]);
 
-  const handleCheckout = async () => {
-    if (cartItems.length === 0) {
-      Alert.alert('Keranjang kosong', 'Silakan tambahkan item terlebih dahulu.');
+  const total = cart.reduce((sum, item) => {
+    return sum + (item.price || 0) * item.quantity;
+  }, 0);
+
+  const increaseQty = (index) => {
+    const updated = [...cart];
+    updated[index].quantity += 1;
+    setCart(updated);
+  };
+
+  const decreaseQty = (index) => {
+    const updated = [...cart];
+    if (updated[index].quantity > 1) {
+      updated[index].quantity -= 1;
+      setCart(updated);
+    } else {
+      Alert.alert("Minimal 1 item", "Jumlah tidak boleh kurang dari 1");
+    }
+  };
+
+  const removeItem = (index) => {
+    const updated = [...cart];
+    updated.splice(index, 1);
+    setCart(updated);
+  };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      Alert.alert('Keranjang Kosong', 'Tambahkan produk terlebih dahulu');
       return;
     }
 
-    // Kirim notifikasi lokal
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Pesanan Diterima 🍱',
-        body: 'Terima kasih! Pesanan kamu sedang diproses.',
-      },
-      trigger: null,
+    const newOrders = { ...orders };
+    cart.forEach(product => {
+      newOrders[product.id] = {
+        status: 'Diproses',
+        timestamp: new Date().toLocaleTimeString()
+      };
     });
+    setOrders(newOrders);
 
-    clearCart();
-    Alert.alert('Checkout berhasil', 'Pesanan kamu sedang diproses.');
-    navigation.goBack();
+    const orderIds = cart.map(item => item.id);
+    setTimeout(() => {
+      setCompletedOrders(prev => [...prev, ...orderIds]);
+      setOrders(prev => {
+        const updated = { ...prev };
+        orderIds.forEach(id => {
+          if (updated[id]) {
+            updated[id].status = 'Selesai';
+          }
+        });
+        return updated;
+      });
+    }, 5000);
+
+    setCart([]);
+
+    Alert.alert(
+      'Pembelian Berhasil',
+      'Silakan lakukan pembayaran cash di kasir'
+    );
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Isi Keranjang</Text>
-      <FlatList
-        data={cartItems}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <Text style={styles.item}>{item.name} - Rp {item.price}</Text>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>Keranjang masih kosong</Text>}
-      />
-      <Button title="Checkout" onPress={handleCheckout} />
-    </View>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Keranjang Belanja</Text>
+
+      {cart.length === 0 ? (
+        <Text style={styles.emptyText}>Keranjang Anda kosong</Text>
+      ) : (
+        <>
+          {cart.map((product, index) => (
+            <View key={`${product.id}-${index}`} style={styles.cartItem}>
+              {product.image && (
+                <Image source={product.image} style={styles.cartImage} />
+              )}
+              <View style={styles.itemInfo}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productPrice}>
+                  Rp{product.price.toLocaleString()} x {product.quantity}
+                </Text>
+
+                <View style={styles.controls}>
+                  <TouchableOpacity onPress={() => decreaseQty(index)} style={styles.qtyButton}>
+                    <Text style={styles.qtyText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.qtyDisplay}>{product.quantity}</Text>
+                  <TouchableOpacity onPress={() => increaseQty(index)} style={styles.qtyButton}>
+                    <Text style={styles.qtyText}>+</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => removeItem(index)} style={styles.removeButton}>
+                    <Text style={styles.removeText}>Hapus</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalText}>Total: Rp{total.toLocaleString()}</Text>
+          </View>
+        </>
+      )}
+
+      <View style={styles.checkoutContainer}>
+        <Button
+          title={`Beli Sekarang (${cart.length} item)`}
+          onPress={handleCheckout}
+          color="#2e86de"
+          disabled={cart.length === 0}
+        />
+      </View>
+    </ScrollView>
   );
-}
+};
+
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  heading: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
-  item: { fontSize: 16, marginBottom: 5 },
-  empty: { fontStyle: 'italic', color: 'gray' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f1f2f6',
+    padding: 15,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1e272e',
+  },
+  emptyText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 50,
+    color: '#808e9b',
+  },
+  cartItem: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  cartImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 15,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  productPrice: {
+    fontSize: 14,
+    color: '#ff6b6b',
+  },
+  totalContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    alignItems: 'flex-end',
+  },
+  totalText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  checkoutContainer: {
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6
+  },
+  qtyButton: {
+    backgroundColor: '#ccc',
+    padding: 6,
+    borderRadius: 4
+  },
+  qtyText: {
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+  qtyDisplay: {
+    marginHorizontal: 10,
+    fontSize: 16
+  },
+  removeButton: {
+    marginLeft: 16
+  },
+  removeText: {
+    color: 'red',
+    fontSize: 14
+  },
 });
+
+export default CartScreen;

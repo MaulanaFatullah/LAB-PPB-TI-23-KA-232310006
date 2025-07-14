@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,8 +7,11 @@ import {
     TouchableOpacity,
     Image,
     Alert,
-    SafeAreaView
+    SafeAreaView,
+    Button
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-root-toast';
 
 const products = [
     { id: 1, name: 'Nasi Goreng', price: 15000, category: 'makanan', image: require('../assets/nasi_goreng.jpg') },
@@ -27,47 +30,45 @@ const products = [
 
 const HomeScreen = ({ route }) => {
     const { username } = route.params;
+    const [cart, setCart] = useState([]);
     const [orders, setOrders] = useState({});
+    const [completedOrders, setCompletedOrders] = useState([]);
+    const navigation = useNavigation();
 
-    const handleBuy = (productId) => {
-        Alert.alert(
-            'Konfirmasi Pembelian',
-            `Beli ${products.find(p => p.id === productId).name}?`,
-            [
-                {
-                    text: 'Batal',
-                    style: 'cancel'
-                },
-                {
-                    text: 'Beli',
-                    onPress: () => {
-                        setOrders(prev => ({
-                            ...prev,
-                            [productId]: {
-                                status: 'Diproses',
-                                timestamp: new Date().toLocaleTimeString()
-                            }
-                        }));
+    useEffect(() => {
+        completedOrders.forEach(orderId => {
+            const product = products.find(p => p.id === orderId);
+            if (product) {
+                Alert.alert(
+                    'Pesanan Siap!',
+                    `${product.name} sudah siap diambil di kantin`
+                );
+            }
+        });
+    }, [completedOrders]);
 
-                        setTimeout(() => {
-                            setOrders(prev => ({
-                                ...prev,
-                                [productId]: {
-                                    ...prev[productId],
-                                    status: 'Selesai'
-                                }
-                            }));
-                        }, 5000);
+    const addToCart = (product) => {
+        setCart(prevCart => {
+            const existingIndex = prevCart.findIndex(item => item.id === product.id);
+            if (existingIndex !== -1) {
+                const updatedCart = [...prevCart];
+                updatedCart[existingIndex].quantity += 1;
+                return updatedCart;
+            } else {
+                return [...prevCart, { ...product, quantity: 1 }];
+            }
+        });
 
-                        Alert.alert(
-                            'Pembelian Berhasil',
-                            'Silakan lakukan pembayaran cash di kasir',
-                            [{ text: 'OK' }]
-                        );
-                    }
-                }
-            ]
-        );
+        Toast.show(`${product.name} ditambahkan ke keranjang`, {
+            duration: Toast.durations.SHORT,
+            position: 120,
+            backgroundColor: '#2e86de',
+            textColor: '#fff',
+            shadow: true,
+            animation: true,
+            hideOnPress: true,
+        });
+
     };
 
     return (
@@ -75,7 +76,11 @@ const HomeScreen = ({ route }) => {
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
                     <Text style={styles.welcome}>Selamat datang, {username}!</Text>
-                    <Text style={styles.subtitle}>Silakan pilih menu favorit Anda</Text>
+                    <View style={styles.cartContainer}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Cart', { cart, products })}>
+                            <Text style={styles.cartText}>🛒 Keranjang ({cart.length})</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Menu Makanan */}
@@ -91,7 +96,7 @@ const HomeScreen = ({ route }) => {
 
                                 <TouchableOpacity
                                     style={styles.buyButton}
-                                    onPress={() => handleBuy(product.id)}
+                                    onPress={() => addToCart(product)}
                                 >
                                     <Text style={styles.buyButtonText}>Beli</Text>
                                 </TouchableOpacity>
@@ -123,7 +128,7 @@ const HomeScreen = ({ route }) => {
 
                                 <TouchableOpacity
                                     style={styles.buyButton}
-                                    onPress={() => handleBuy(product.id)}
+                                    onPress={() => addToCart(product)}
                                 >
                                     <Text style={styles.buyButtonText}>Beli</Text>
                                 </TouchableOpacity>
@@ -153,11 +158,23 @@ const styles = StyleSheet.create({
         padding: 15,
     },
     header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 20,
         padding: 15,
         backgroundColor: '#ffffff',
         borderRadius: 10,
         elevation: 2,
+    },
+    cartContainer: {
+        backgroundColor: '#ff9f43',
+        padding: 10,
+        borderRadius: 20,
+    },
+    cartText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
     },
     welcome: {
         fontSize: 22,
